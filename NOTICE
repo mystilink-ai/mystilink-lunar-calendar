@@ -1,0 +1,15 @@
+mystilink-lunar-calendar
+Copyright (c) 2026 Mystilink
+
+This product is licensed under the MIT License (see LICENSE).
+
+---------------------------------------------------------------------------
+Third-party notice (runtime dependency)
+
+sxtwl (Python binding of 寿星天文历 / sxtwl)
+  Upstream C++ project historically distributed under BSD-3-Clause.
+  Used only through the public PyPI package `sxtwl` as an internal calendar
+  provider in v0.1.x. Mystilink public APIs do not re-export sxtwl types.
+
+  Retain upstream copyright and license texts as required by that package's
+  distribution when redistributing binaries that include it.
