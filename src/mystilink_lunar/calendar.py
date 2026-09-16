@@ -3,19 +3,23 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional, Union, overload
 
-from mystilink_lunar.ganzhi import year_ganzhi_and_zodiac
+from mystilink_lunar.ganzhi import compute_pillars
 from mystilink_lunar.lunar import lunar_to_solar, solar_to_lunar
 from mystilink_lunar.models import (
     CalendarSnapshot,
     Ganzhi,
+    GanzhiPillars,
     GanzhiRules,
+    GanzhiTrace,
     LunarDate,
     SolarDate,
+    SolarTerm,
     Zodiac,
 )
 from mystilink_lunar.providers import CalendarProvider, default_provider
+from mystilink_lunar.solar_terms import adjacent_solar_terms
 from mystilink_lunar.timezone import build_aware_datetime, civil_date_in_zone, require_aware
 
 
@@ -23,7 +27,7 @@ class LunarCalendar:
     """
     Timezone-aware Chinese lunar calendar snapshot.
 
-    Alpha.1: solar↔lunar, leap month, year ganzhi/zodiac (chunjie boundary), JSON.
+    Alpha.3: solar↔lunar, solar terms, four pillars with explicit rules + explain.
     """
 
     def __init__(
@@ -39,9 +43,17 @@ class LunarCalendar:
         civil = civil_date_in_zone(self._instant)
         self._solar = SolarDate(civil.year, civil.month, civil.day)
         self._lunar = solar_to_lunar(self._solar, provider=self._provider)
-        self._year_ganzhi, self._zodiac = year_ganzhi_and_zodiac(
-            self._lunar, rules=self._rules
+        pillars, zodiac, _trace = compute_pillars(
+            self._instant,
+            self._lunar,
+            rules=self._rules,
+            provider=self._provider,
         )
+        self._pillars = pillars
+        self._zodiac = zodiac
+        prev, nxt = adjacent_solar_terms(self._instant, provider=self._provider)
+        self._previous_solar_term = prev
+        self._next_solar_term = nxt
 
     @classmethod
     def from_solar(
@@ -128,7 +140,19 @@ class LunarCalendar:
 
     @property
     def year_ganzhi(self) -> Ganzhi:
-        return self._year_ganzhi
+        return self._pillars.year
+
+    @property
+    def pillars(self) -> GanzhiPillars:
+        return self._pillars
+
+    @property
+    def previous_solar_term(self) -> SolarTerm:
+        return self._previous_solar_term
+
+    @property
+    def next_solar_term(self) -> SolarTerm:
+        return self._next_solar_term
 
     @property
     def rules(self) -> GanzhiRules:
@@ -138,6 +162,46 @@ class LunarCalendar:
     def provider_name(self) -> str:
         return getattr(self._provider, "name", type(self._provider).__name__)
 
+    @overload
+    def ganzhi(
+        self,
+        *,
+        rules: Optional[GanzhiRules] = None,
+        explain: Literal[False] = False,
+    ) -> GanzhiPillars: ...
+
+    @overload
+    def ganzhi(
+        self,
+        *,
+        rules: Optional[GanzhiRules] = None,
+        explain: Literal[True],
+    ) -> tuple[GanzhiPillars, GanzhiTrace]: ...
+
+    def ganzhi(
+        self,
+        *,
+        rules: Optional[GanzhiRules] = None,
+        explain: bool = False,
+    ) -> Union[GanzhiPillars, tuple[GanzhiPillars, GanzhiTrace]]:
+        """
+        Four pillars under explicit rules.
+
+        explain=True returns (pillars, deterministic rule trace).
+        """
+        active = rules or self._rules
+        if rules is None and not explain:
+            return self._pillars
+        pillars, _zodiac, trace = compute_pillars(
+            self._instant,
+            self._lunar,
+            rules=active,
+            provider=self._provider,
+        )
+        if explain:
+            return pillars, trace
+        return pillars
+
     def snapshot(self) -> CalendarSnapshot:
         return CalendarSnapshot(
             instant=self._instant,
@@ -145,9 +209,11 @@ class LunarCalendar:
             solar=self._solar,
             lunar=self._lunar,
             zodiac=self._zodiac,
-            year_ganzhi=self._year_ganzhi,
+            ganzhi=self._pillars,
             rules=self._rules,
             provider=self.provider_name,
+            previous_solar_term=self._previous_solar_term,
+            next_solar_term=self._next_solar_term,
         )
 
     def to_dict(self) -> Dict[str, Any]:

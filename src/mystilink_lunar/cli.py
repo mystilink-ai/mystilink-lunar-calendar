@@ -11,9 +11,10 @@ from typing import Any, Optional
 from mystilink_lunar.calendar import LunarCalendar
 from mystilink_lunar.exceptions import MystilinkLunarError
 from mystilink_lunar.models import GanzhiRules
+from mystilink_lunar.solar_terms import get_solar_term
 
 PACKAGE_NAME = "mystilink-lunar"
-FALLBACK_VERSION = "0.1.0a1"
+FALLBACK_VERSION = "0.1.0a3"
 
 
 def get_version() -> str:
@@ -53,16 +54,37 @@ def _parse_date(value: str) -> tuple[int, int, int]:
     return int(parts[0]), int(parts[1]), int(parts[2])
 
 
+def _build_rules(args: argparse.Namespace) -> GanzhiRules:
+    if getattr(args, "profile", None) == "bazi":
+        base = GanzhiRules.bazi_default()
+    else:
+        base = GanzhiRules.lunar_calendar()
+    return GanzhiRules(
+        year_boundary=args.year_boundary or base.year_boundary,
+        month_boundary=args.month_boundary or base.month_boundary,
+        day_boundary=args.day_boundary or base.day_boundary,
+        hour_system=base.hour_system,
+    )
+
+
 def _human(cal: LunarCalendar) -> str:
     lunar = cal.lunar
     leap = " leap" if lunar.is_leap_month else ""
+    prev = cal.previous_solar_term
+    nxt = cal.next_solar_term
+    p = cal.pillars
     lines = [
         f"Solar       {cal.instant.isoformat()}",
         f"Timezone    {cal.timezone}",
         f"Lunar       {lunar.year}-{lunar.month:02d}-{lunar.day:02d}{leap}",
-        f"Year        {cal.year_ganzhi.text}",
+        f"Year        {p.year.text}",
+        f"Month       {p.month.text}",
+        f"Day         {p.day.text}",
+        f"Hour        {p.hour.text}",
         f"Zodiac      {cal.zodiac.id} ({cal.zodiac.chinese})",
-        f"Boundary    {cal.rules.year_boundary}",
+        f"Solar Term  {prev.chinese_name} → {nxt.chinese_name}",
+        f"Rules       year={cal.rules.year_boundary} month={cal.rules.month_boundary} "
+        f"day={cal.rules.day_boundary}",
         f"Provider    {cal.provider_name}",
     ]
     return "\n".join(lines)
@@ -73,7 +95,7 @@ def cmd_convert(args: argparse.Namespace) -> None:
         _print_error("timezone is required (IANA name, e.g. Asia/Shanghai)")
     try:
         hour, minute, second = _parse_time(args.time)
-        rules = GanzhiRules(year_boundary=args.year_boundary)
+        rules = _build_rules(args)
         if args.lunar:
             y, m, d = _parse_date(args.lunar)
             cal = LunarCalendar.from_lunar(
@@ -107,9 +129,36 @@ def cmd_convert(args: argparse.Namespace) -> None:
         _print_error(str(exc))
 
     if args.json:
-        _print_json(cal.to_dict())
+        data = cal.to_dict()
+        if args.explain:
+            _pillars, trace = cal.ganzhi(explain=True)
+            data["ganzhi_explain"] = trace.to_dict()
+        _print_json(data)
     else:
         print(_human(cal))
+        if args.explain:
+            _pillars, trace = cal.ganzhi(explain=True)
+            print("--- explain ---")
+            for slot in ("year", "month", "day", "hour"):
+                item = getattr(trace, slot)
+                print(f"{slot:5} {item.value}  [{item.boundary}]  {item.reason}")
+
+
+def cmd_solar_term(args: argparse.Namespace) -> None:
+    try:
+        term = get_solar_term(args.name, args.year, timezone=args.timezone)
+    except MystilinkLunarError as exc:
+        _print_error(str(exc))
+    except ValueError as exc:
+        _print_error(str(exc))
+
+    if args.json:
+        _print_json(term.to_dict())
+        return
+    print(
+        f"{term.chinese_name} ({term.id})  {term.datetime.isoformat()}  "
+        f"λ={term.solar_longitude:g}°"
+    )
 
 
 def cmd_version(_: argparse.Namespace) -> None:
@@ -123,7 +172,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    convert = sub.add_parser("convert", help="Convert solar↔lunar and print year pillar")
+    convert = sub.add_parser("convert", help="Convert solar↔lunar and print four pillars")
     convert.add_argument("--date", help="Gregorian date YYYY-MM-DD")
     convert.add_argument("--lunar", help="Lunar date YYYY-MM-DD")
     convert.add_argument(
@@ -138,17 +187,55 @@ def build_parser() -> argparse.ArgumentParser:
         help="IANA timezone (required), e.g. Asia/Shanghai",
     )
     convert.add_argument(
+        "--profile",
+        choices=["lunar", "bazi"],
+        default="lunar",
+        help="Rule profile preset (default: lunar)",
+    )
+    convert.add_argument(
         "--year-boundary",
         choices=["chunjie", "lichun_day", "lichun_exact"],
-        default="chunjie",
-        help="Year pillar / zodiac boundary (alpha.1: chunjie only)",
+        default=None,
+        help="Override year pillar boundary",
+    )
+    convert.add_argument(
+        "--month-boundary",
+        choices=["jie_exact", "jie_day", "lunar_month"],
+        default=None,
+        help="Override month pillar boundary",
+    )
+    convert.add_argument(
+        "--day-boundary",
+        choices=["midnight", "zi_start"],
+        default=None,
+        help="Override day pillar boundary",
     )
     convert.add_argument(
         "--json",
         action="store_true",
         help="Print structured JSON",
     )
+    convert.add_argument(
+        "--explain",
+        action="store_true",
+        help="Include deterministic ganzhi rule traces",
+    )
     convert.set_defaults(func=cmd_convert)
+
+    term = sub.add_parser("solar-term", help="Exact instant of one 24 solar term")
+    term.add_argument(
+        "--name",
+        required=True,
+        help="Term id (lichun), Chinese name (立春), or index 0-23",
+    )
+    term.add_argument("--year", required=True, type=int, help="Gregorian year")
+    term.add_argument(
+        "--timezone",
+        required=True,
+        help="IANA timezone (required), e.g. Asia/Shanghai",
+    )
+    term.add_argument("--json", action="store_true", help="Print structured JSON")
+    term.set_defaults(func=cmd_solar_term)
 
     ver = sub.add_parser("version", help="Print package version")
     ver.set_defaults(func=cmd_version)

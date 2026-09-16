@@ -2,7 +2,8 @@
 """Calendar provider protocol."""
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from datetime import datetime
+from typing import List, Protocol, Tuple, runtime_checkable
 
 from mystilink_lunar.models import LunarDate, SolarDate
 
@@ -17,4 +18,13 @@ class CalendarProvider(Protocol):
         ...
 
     def lunar_to_solar(self, lunar: LunarDate) -> SolarDate:
+        ...
+
+    def solar_term_events(self, year: int) -> List[Tuple[int, datetime]]:
+        """(jq_index, Asia/Shanghai-aware datetime) for getJieQiByYear(year)."""
+        ...
+
+    def solar_term_instant(
+        self, index: int, year: int, *, timezone: str
+    ) -> datetime:
         ...

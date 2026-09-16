@@ -25,3 +25,11 @@ class InvalidLunarDateError(MystilinkLunarError):
 
 class ProviderError(MystilinkLunarError):
     """Raised when the internal calendar provider fails."""
+
+
+class UnknownSolarTermError(MystilinkLunarError):
+    """Raised when a solar-term name or index cannot be resolved."""
+
+
+class SolarTermNotFoundError(MystilinkLunarError):
+    """Raised when a solar term cannot be located for the requested year."""

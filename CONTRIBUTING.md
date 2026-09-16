@@ -15,7 +15,7 @@ pytest
 
 ## Tests
 
-Add fixtures for boundary cases (Spring Festival, leap months, later: solar-term ±1s). Use fictional personal data only.
+Add fixtures for boundary cases (Spring Festival, leap months, solar-term ±1s). Use fictional personal data only.
 
 ## License
 

@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://mystilink.example/schema/convert.output.json",
-  "title": "mystilink-lunar convert output (alpha.1)",
+  "title": "mystilink-lunar convert output (alpha.3)",
   "type": "object",
-  "required": ["solar", "lunar", "ganzhi", "zodiac", "rules", "provider"],
+  "required": ["solar", "lunar", "ganzhi", "zodiac", "rules", "provider", "solar_term"],
   "properties": {
     "solar": {
       "type": "object",
@@ -28,19 +28,24 @@
     },
     "ganzhi": {
       "type": "object",
-      "required": ["year"],
+      "required": ["year", "month", "day", "hour"],
       "properties": {
-        "year": {
-          "type": "object",
-          "required": ["stem_index", "branch_index", "stem", "branch", "text"],
-          "properties": {
-            "stem_index": { "type": "integer", "minimum": 0, "maximum": 9 },
-            "branch_index": { "type": "integer", "minimum": 0, "maximum": 11 },
-            "stem": { "type": "string" },
-            "branch": { "type": "string" },
-            "text": { "type": "string" }
-          }
-        }
+        "year": { "$ref": "#/$defs/ganzhi" },
+        "month": { "$ref": "#/$defs/ganzhi" },
+        "day": { "$ref": "#/$defs/ganzhi" },
+        "hour": { "$ref": "#/$defs/ganzhi" }
+      }
+    },
+    "ganzhi_explain": {
+      "type": "object",
+      "description": "Present when CLI --explain is set",
+      "required": ["year", "month", "day", "hour", "rules"],
+      "properties": {
+        "year": { "$ref": "#/$defs/pillarTrace" },
+        "month": { "$ref": "#/$defs/pillarTrace" },
+        "day": { "$ref": "#/$defs/pillarTrace" },
+        "hour": { "$ref": "#/$defs/pillarTrace" },
+        "rules": { "type": "object" }
       }
     },
     "zodiac": {
@@ -55,18 +60,70 @@
     },
     "rules": {
       "type": "object",
-      "required": ["year_boundary"],
+      "required": ["year_boundary", "month_boundary", "day_boundary", "hour_system"],
       "properties": {
         "year_boundary": {
           "type": "string",
           "enum": ["chunjie", "lichun_day", "lichun_exact"]
+        },
+        "month_boundary": {
+          "type": "string",
+          "enum": ["jie_exact", "jie_day", "lunar_month"]
+        },
+        "day_boundary": {
+          "type": "string",
+          "enum": ["midnight", "zi_start"]
+        },
+        "hour_system": {
+          "type": "string",
+          "enum": ["double_hour"]
         }
       }
     },
     "provider": { "type": "string" },
     "solar_term": {
+      "type": "object",
+      "required": ["previous", "next"],
+      "properties": {
+        "previous": { "$ref": "#/$defs/solarTerm" },
+        "next": { "$ref": "#/$defs/solarTerm" }
+      }
+    }
+  },
+  "$defs": {
+    "ganzhi": {
+      "type": "object",
+      "required": ["stem_index", "branch_index", "stem", "branch", "text"],
+      "properties": {
+        "stem_index": { "type": "integer", "minimum": 0, "maximum": 9 },
+        "branch_index": { "type": "integer", "minimum": 0, "maximum": 11 },
+        "stem": { "type": "string" },
+        "branch": { "type": "string" },
+        "text": { "type": "string" }
+      }
+    },
+    "pillarTrace": {
+      "type": "object",
+      "required": ["value", "stem_index", "branch_index", "boundary", "reason"],
+      "properties": {
+        "value": { "type": "string" },
+        "stem_index": { "type": "integer" },
+        "branch_index": { "type": "integer" },
+        "boundary": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+    "solarTerm": {
       "type": ["object", "null"],
-      "description": "Reserved; populated from alpha.2"
+      "required": ["index", "id", "name", "chinese_name", "solar_longitude", "datetime"],
+      "properties": {
+        "index": { "type": "integer", "minimum": 0, "maximum": 23 },
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "chinese_name": { "type": "string" },
+        "solar_longitude": { "type": "number" },
+        "datetime": { "type": "string", "format": "date-time" }
+      }
     }
   }
 }

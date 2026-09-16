@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mystilink.example/schema/solar-term.output.json",
+  "title": "mystilink-lunar solar-term output (alpha.2)",
+  "type": "object",
+  "required": ["index", "id", "name", "chinese_name", "solar_longitude", "datetime"],
+  "properties": {
+    "index": { "type": "integer", "minimum": 0, "maximum": 23 },
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "chinese_name": { "type": "string" },
+    "solar_longitude": { "type": "number" },
+    "datetime": { "type": "string", "format": "date-time" }
+  }
+}

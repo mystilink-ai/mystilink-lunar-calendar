@@ -68,9 +68,15 @@ def test_to_dict_shape() -> None:
         "is_leap_month": False,
     }
     assert data["ganzhi"]["year"]["text"] == "癸酉"
+    assert data["ganzhi"]["month"]["text"] == "辛酉"
+    assert data["ganzhi"]["day"]["text"] == "壬子"
+    assert data["ganzhi"]["hour"]["text"] == "丁未"
     assert data["zodiac"]["id"] == "rooster"
     assert data["rules"]["year_boundary"] == "chunjie"
-    assert data["solar_term"] is None
+    assert data["rules"]["month_boundary"] == "lunar_month"
+    assert data["rules"]["day_boundary"] == "midnight"
+    assert data["solar_term"]["previous"]["id"] == "qiufen"
+    assert data["solar_term"]["next"]["id"] == "hanlu"
     assert data["provider"] == "sxtwl"
 
 

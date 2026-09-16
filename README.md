@@ -4,16 +4,16 @@
 
 ## Overview
 
-Deterministic, timezone-aware Chinese lunar calendar and sexagenary-cycle foundation for metaphysics engines and agent tooling. This package converts Gregorian ↔ lunar dates (including leap months), exposes structured JSON, and keeps calendar facts separate from BaZi / Zi Wei rule engines.
+Deterministic, timezone-aware Chinese lunar calendar and sexagenary-cycle foundation for metaphysics engines and agent tooling. This package converts Gregorian ↔ lunar dates (including leap months), exposes 24 solar terms to the second, computes four pillars under explicit rules, and returns structured JSON.
 
-**v0.1.0a1 (Calendar Foundation)** includes solar↔lunar, leap months, required IANA timezone, year ganzhi + zodiac (`chunjie` boundary), `to_dict()`, and CLI `convert`. Solar terms and full four pillars arrive in later alphas.
+**v0.1.0a3 (Four Pillars)** adds month/day/hour pillars, `GanzhiRules` profiles, and `ganzhi(explain=True)` rule traces on top of alpha.2 solar terms.
 
 ## Platforms and languages
 
-| Target | Delivery (alpha.1) |
+| Target | Delivery (alpha.3) |
 |--------|--------------------|
 | Python 3.10+ | Installable package `mystilink-lunar`, CLI `mystilink-lunar` |
-| C / C++ / C# / Java / JavaScript·Node | Planned: thin bindings over CLI JSON (same pattern as sibling calculators) |
+| C / C++ / C# / Java / JavaScript·Node | Planned: thin bindings over CLI JSON |
 
 ## Requirements
 
@@ -29,104 +29,90 @@ python3 -m pip install -e ".[dev]"
 mystilink-lunar convert \
   --date 1993-09-28 \
   --time 13:21 \
-  --timezone Asia/Shanghai
-
-mystilink-lunar convert \
-  --date 1993-09-28 \
-  --time 13:21 \
   --timezone Asia/Shanghai \
+  --profile bazi \
   --json
-```
-
-Also:
-
-```bash
-python3 -m mystilink_lunar convert --date 1993-09-28 --timezone Asia/Shanghai --json
 ```
 
 ## Python API
 
 ```python
-from mystilink_lunar import LunarCalendar, GanzhiRules
+from mystilink_lunar import LunarCalendar, GanzhiRules, get_solar_term
 
 cal = LunarCalendar.from_solar(
-    year=1993,
-    month=9,
-    day=28,
-    hour=13,
-    minute=21,
+    1993, 9, 28, 13, 21,
     timezone="Asia/Shanghai",
-    rules=GanzhiRules.lunar_calendar(),
+    rules=GanzhiRules.bazi_default(),
 )
 
-cal.solar          # SolarDate
-cal.lunar          # LunarDate(year=1993, month=8, day=13, is_leap_month=False)
-cal.year_ganzhi    # Ganzhi → 癸酉
-cal.zodiac         # Zodiac id "rooster"
-cal.to_dict()      # structured dict / JSON-ready
+cal.pillars.year.text   # 癸酉
+cal.pillars.month.text  # 辛酉
+cal.pillars.day.text    # 壬子
+cal.pillars.hour.text   # 丁未
+cal.previous_solar_term
+cal.next_solar_term
+
+pillars, trace = cal.ganzhi(explain=True)
+# trace.year.reason is a deterministic rule string
+
+term = get_solar_term("lichun", 2026, timezone="Asia/Shanghai")
 ```
 
 Timezone is **required**. Naive datetimes raise `MissingTimezoneError`.
-
-Lunar → Gregorian:
-
-```python
-cal = LunarCalendar.from_lunar(
-    2023, 2, 1,
-    is_leap_month=True,
-    timezone="Asia/Shanghai",
-)
-```
 
 ## CLI
 
 | Command | Description |
 |---------|-------------|
-| `convert` | Solar or lunar input → calendar snapshot |
+| `convert` | Solar/lunar → calendar snapshot + four pillars |
+| `solar-term` | Exact instant of one of the 24 terms |
 | `version` | Package version |
 
 ### convert
 
 | Option | Description |
 |--------|-------------|
-| `--date` | Gregorian `YYYY-MM-DD` |
-| `--lunar` | Lunar `YYYY-MM-DD` |
+| `--date` / `--lunar` | Gregorian or lunar `YYYY-MM-DD` |
 | `--leap` | Treat `--lunar` as leap month |
-| `--time` | `HH:MM` or `HH:MM:SS` (default `00:00:00`) |
+| `--time` | `HH:MM` or `HH:MM:SS` |
 | `--timezone` | IANA zone (**required**) |
-| `--year-boundary` | `chunjie` (default; only implemented boundary in alpha.1) |
-| `--json` | Print JSON matching `schema/convert.output.json` |
+| `--profile` | `lunar` (default) or `bazi` |
+| `--year-boundary` | Override: `chunjie` / `lichun_day` / `lichun_exact` |
+| `--month-boundary` | Override: `jie_exact` / `jie_day` / `lunar_month` |
+| `--day-boundary` | Override: `midnight` / `zi_start` |
+| `--json` | Structured JSON |
+| `--explain` | Attach deterministic ganzhi traces |
 
 ## Configuration / rules
 
-- `GanzhiRules.year_boundary`: `chunjie` | `lichun_day` | `lichun_exact`
-- Alpha.1 implements `chunjie` only; other values raise until solar terms land
-- Details: [docs/calendar-rules.md](docs/calendar-rules.md)
+See [docs/ganzhi-rules.md](docs/ganzhi-rules.md) and [docs/calendar-rules.md](docs/calendar-rules.md).
 
 ## Examples
 
 - [examples/python/basic.py](examples/python/basic.py)
+- [examples/python/solar_terms.py](examples/python/solar_terms.py)
+- [examples/python/bazi_time_basis.py](examples/python/bazi_time_basis.py)
 
 ## Accuracy
 
-See [docs/accuracy.md](docs/accuracy.md). Supported civil years for this alpha: **1900–2100**.
+See [docs/accuracy.md](docs/accuracy.md). Supported civil years: **1900–2100**.
 
 ## Roadmap (summary)
 
 | Version | Focus |
 |---------|--------|
-| 0.1.0a1 | Calendar foundation (this release) |
-| alpha.2 | 24 solar terms to the second |
-| alpha.3 | Ganzhi four pillars + rule explain |
+| 0.1.0a1 | Calendar foundation |
+| 0.1.0a2 | 24 solar terms to the second |
+| 0.1.0a3 | Four pillars + explain (this release) |
 | 0.2+ | Native astronomy; retire runtime sxtwl |
 | 1.0 | Stable schema, validated fixtures, zero runtime deps |
 
 ## Limits
 
-- Month / day / hour pillars and solar-term objects are not computed yet
-- Year boundary other than `chunjie` is not available
+- True solar time / longitude correction not included yet
+- Solar-term timestamps follow the internal provider (not observatory-certified)
 - Public APIs must not import or expose `sxtwl`
-- Language-matrix bindings beyond Python are not shipped in alpha.1
+- Language-matrix bindings beyond Python are not shipped in this alpha
 
 ## License
 

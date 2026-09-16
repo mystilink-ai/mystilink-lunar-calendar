@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mystilink-lunar"
-version = "0.1.0a1"
+version = "0.1.0a3"
 description = "Timezone-aware Chinese lunar calendar and sexagenary-cycle foundation for metaphysics engines"
 readme = "README.md"
 license = { text = "MIT" }

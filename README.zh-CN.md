@@ -4,16 +4,16 @@
 
 ## 概述
 
-面向术数引擎与 Agent 工具的确定性、时区感知中国农历与干支基础库。提供公历 ↔ 农历（含闰月）转换与结构化 JSON，并将历法事实与八字 / 紫微等上层规则引擎分离。
+面向术数引擎与 Agent 工具的确定性、时区感知中国农历与干支基础库。提供公历 ↔ 农历（含闰月）、二十四节气精确到秒、在显式规则下计算四柱，并输出结构化 JSON。
 
-**v0.1.0a1（历法基础）** 包含：公农互转、闰月、强制 IANA 时区、年柱干支与生肖（`chunjie` 边界）、`to_dict()`、CLI `convert`。二十四节气与完整四柱在后续 alpha 提供。
+**v0.1.0a3（四柱）** 在 alpha.2 节气能力之上，增加月/日/时柱、`GanzhiRules` 配置档，以及 `ganzhi(explain=True)` 规则追溯。
 
 ## 平台与语言
 
-| 目标 | 交付（alpha.1） |
+| 目标 | 交付（alpha.3） |
 |------|-----------------|
 | Python 3.10+ | 可安装包 `mystilink-lunar`，CLI `mystilink-lunar` |
-| C / C++ / C# / Java / JavaScript·Node | 计划：基于 CLI JSON 的薄绑定（与同系计算器一致） |
+| C / C++ / C# / Java / JavaScript·Node | 计划：基于 CLI JSON 的薄绑定 |
 
 ## 环境要求
 
@@ -29,104 +29,90 @@ python3 -m pip install -e ".[dev]"
 mystilink-lunar convert \
   --date 1993-09-28 \
   --time 13:21 \
-  --timezone Asia/Shanghai
-
-mystilink-lunar convert \
-  --date 1993-09-28 \
-  --time 13:21 \
   --timezone Asia/Shanghai \
+  --profile bazi \
   --json
-```
-
-也可：
-
-```bash
-python3 -m mystilink_lunar convert --date 1993-09-28 --timezone Asia/Shanghai --json
 ```
 
 ## Python API
 
 ```python
-from mystilink_lunar import LunarCalendar, GanzhiRules
+from mystilink_lunar import LunarCalendar, GanzhiRules, get_solar_term
 
 cal = LunarCalendar.from_solar(
-    year=1993,
-    month=9,
-    day=28,
-    hour=13,
-    minute=21,
+    1993, 9, 28, 13, 21,
     timezone="Asia/Shanghai",
-    rules=GanzhiRules.lunar_calendar(),
+    rules=GanzhiRules.bazi_default(),
 )
 
-cal.solar          # SolarDate
-cal.lunar          # LunarDate(year=1993, month=8, day=13, is_leap_month=False)
-cal.year_ganzhi    # Ganzhi → 癸酉
-cal.zodiac         # Zodiac id "rooster"
-cal.to_dict()      # 结构化字典 / 可直接 JSON
+cal.pillars.year.text   # 癸酉
+cal.pillars.month.text  # 辛酉
+cal.pillars.day.text    # 壬子
+cal.pillars.hour.text   # 丁未
+cal.previous_solar_term
+cal.next_solar_term
+
+pillars, trace = cal.ganzhi(explain=True)
+# trace.year.reason 为确定性规则说明
+
+term = get_solar_term("lichun", 2026, timezone="Asia/Shanghai")
 ```
 
 时区**必填**。naive datetime 会抛出 `MissingTimezoneError`。
-
-农历 → 公历：
-
-```python
-cal = LunarCalendar.from_lunar(
-    2023, 2, 1,
-    is_leap_month=True,
-    timezone="Asia/Shanghai",
-)
-```
 
 ## CLI
 
 | 命令 | 说明 |
 |------|------|
-| `convert` | 公历或农历输入 → 历法快照 |
+| `convert` | 公/农历 → 历法快照 + 四柱 |
+| `solar-term` | 二十四节气之一的精确时刻 |
 | `version` | 包版本 |
 
 ### convert
 
 | 选项 | 说明 |
 |------|------|
-| `--date` | 公历 `YYYY-MM-DD` |
-| `--lunar` | 农历 `YYYY-MM-DD` |
+| `--date` / `--lunar` | 公历或农历 `YYYY-MM-DD` |
 | `--leap` | 将 `--lunar` 视为闰月 |
-| `--time` | `HH:MM` 或 `HH:MM:SS`（默认 `00:00:00`） |
+| `--time` | `HH:MM` 或 `HH:MM:SS` |
 | `--timezone` | IANA 时区（**必填**） |
-| `--year-boundary` | `chunjie`（默认；alpha.1 仅实现此边界） |
-| `--json` | 输出符合 `schema/convert.output.json` 的 JSON |
+| `--profile` | `lunar`（默认）或 `bazi` |
+| `--year-boundary` | 覆盖：`chunjie` / `lichun_day` / `lichun_exact` |
+| `--month-boundary` | 覆盖：`jie_exact` / `jie_day` / `lunar_month` |
+| `--day-boundary` | 覆盖：`midnight` / `zi_start` |
+| `--json` | 结构化 JSON |
+| `--explain` | 附带确定性干支规则追溯 |
 
 ## 配置 / 规则
 
-- `GanzhiRules.year_boundary`：`chunjie` | `lichun_day` | `lichun_exact`
-- alpha.1 仅实现 `chunjie`；其余取值在节气落地前会报错
-- 细节见 [docs/calendar-rules.md](docs/calendar-rules.md)
+见 [docs/ganzhi-rules.md](docs/ganzhi-rules.md) 与 [docs/calendar-rules.md](docs/calendar-rules.md)。
 
 ## 示例
 
 - [examples/python/basic.py](examples/python/basic.py)
+- [examples/python/solar_terms.py](examples/python/solar_terms.py)
+- [examples/python/bazi_time_basis.py](examples/python/bazi_time_basis.py)
 
 ## 精度
 
-见 [docs/accuracy.md](docs/accuracy.md)。本 alpha 支持的公历年份：**1900–2100**。
+见 [docs/accuracy.md](docs/accuracy.md)。支持公历年份：**1900–2100**。
 
 ## 路线图（摘要）
 
 | 版本 | 重点 |
 |------|------|
-| 0.1.0a1 | 历法基础（本版本） |
-| alpha.2 | 二十四节气精确到秒 |
-| alpha.3 | 干支四柱 + 规则追溯 |
+| 0.1.0a1 | 历法基础 |
+| 0.1.0a2 | 二十四节气精确到秒 |
+| 0.1.0a3 | 四柱 + explain（本版本） |
 | 0.2+ | 自建天文核心；去掉运行时 sxtwl |
 | 1.0 | 稳定 schema、权威 fixture、零运行时依赖 |
 
 ## 限制
 
-- 尚未计算月/日/时柱与节气对象
-- 除 `chunjie` 外的年界不可用
+- 尚未包含真太阳时 / 经度修正
+- 节气时刻来自内部 provider（非观测台认证）
 - 公开 API 不得 import 或暴露 `sxtwl`
-- alpha.1 未交付 Python 以外的语言矩阵绑定
+- 本 alpha 未交付 Python 以外的语言矩阵绑定
 
 ## 许可
 

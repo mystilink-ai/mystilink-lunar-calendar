@@ -1,39 +1,59 @@
 # -*- coding: utf-8 -*-
-"""Ganzhi helpers for year pillar / zodiac (alpha.1)."""
+"""Four-pillar computation and rule traces."""
 from __future__ import annotations
 
-from mystilink_lunar.constants import SEXAGENARY_EPOCH_YEAR
-from mystilink_lunar.exceptions import MystilinkLunarError
-from mystilink_lunar.models import Ganzhi, GanzhiRules, LunarDate, Zodiac
+from datetime import datetime
+from typing import Optional
+
+from mystilink_lunar.ganzhi.day import compute_day_pillar
+from mystilink_lunar.ganzhi.hour import compute_hour_pillar
+from mystilink_lunar.ganzhi.month import compute_month_pillar
+from mystilink_lunar.ganzhi.year import compute_year_pillar, ganzhi_from_year_number
+from mystilink_lunar.models import (
+    GanzhiPillars,
+    GanzhiRules,
+    GanzhiTrace,
+    LunarDate,
+    Zodiac,
+)
+from mystilink_lunar.providers import CalendarProvider, default_provider
 
 
-def ganzhi_from_year_number(year: int) -> Ganzhi:
-    """Map a calendar year number to stem-branch via (year - 4) mod 60."""
-    idx = (year - SEXAGENARY_EPOCH_YEAR) % 60
-    return Ganzhi(stem_index=idx % 10, branch_index=idx % 12)
-
-
-def zodiac_from_branch_index(branch_index: int) -> Zodiac:
-    return Zodiac(branch_index=branch_index)
-
-
-def year_ganzhi_and_zodiac(
+def compute_pillars(
+    instant: datetime,
     lunar: LunarDate,
     *,
     rules: GanzhiRules,
-) -> tuple[Ganzhi, Zodiac]:
-    """
-    Resolve year pillar and zodiac for alpha.1.
-
-    Supported:
-      - chunjie: use lunar year number (春节换年)
-    Unsupported yet (raise):
-      - lichun_day / lichun_exact (arrive with solar terms in alpha.2+)
-    """
-    if rules.year_boundary == "chunjie":
-        gz = ganzhi_from_year_number(lunar.year)
-        return gz, zodiac_from_branch_index(gz.branch_index)
-    raise MystilinkLunarError(
-        f"year_boundary={rules.year_boundary!r} requires solar-term support "
-        "(planned for alpha.2+); use GanzhiRules.lunar_calendar() for now"
+    provider: Optional[CalendarProvider] = None,
+) -> tuple[GanzhiPillars, Zodiac, GanzhiTrace]:
+    """Compute four pillars, zodiac, and a deterministic rule trace."""
+    eng = provider or default_provider()
+    year_gz, zodiac, year_trace = compute_year_pillar(
+        lunar, rules=rules, instant=instant, provider=eng
     )
+    month_gz, month_trace = compute_month_pillar(
+        lunar,
+        year_stem_index=year_gz.stem_index,
+        rules=rules,
+        instant=instant,
+        provider=eng,
+    )
+    day_gz, day_trace, _day_date = compute_day_pillar(instant, rules=rules)
+    hour_gz, hour_trace = compute_hour_pillar(
+        instant, day_stem_index=day_gz.stem_index, rules=rules
+    )
+    pillars = GanzhiPillars(year=year_gz, month=month_gz, day=day_gz, hour=hour_gz)
+    trace = GanzhiTrace(
+        year=year_trace,
+        month=month_trace,
+        day=day_trace,
+        hour=hour_trace,
+        rules=rules,
+    )
+    return pillars, zodiac, trace
+
+
+__all__ = [
+    "compute_pillars",
+    "ganzhi_from_year_number",
+]

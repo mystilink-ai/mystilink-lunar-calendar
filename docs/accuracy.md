@@ -1,24 +1,26 @@
 # Accuracy & validation
 
-## Alpha.1 status
+## Alpha.3 status
 
-- Conversion and leap months: delegated to the internal `sxtwl` provider
-- Cross-checks: unit fixtures for 1993-09-28, 1993 Spring Festival ±1 day, 2023 leap month
-- Solar-term timestamps: not yet shipped (`solar_term` is `null` in JSON)
+- Conversion / leap months / solar terms: internal `sxtwl` provider
+- Four pillars: Mystilink rule layer (五虎遁 / 五鼠遁 / day epoch / jie adjacency)
+- Cross-checks: 1993-09-28 pillars, 立秋 ±1 s month change, 子时 22:59/23:00/00:00/01:00, Li Chun year boundaries
 
-## Planned oracles (later alphas)
+Provider solar-term timestamps can differ from published almanacs by seconds.
 
-- sxtwl (runtime provider → test-only)
-- lunar-python (behavior contrast, tests only)
+## Planned oracles (later)
+
+- sxtwl / lunar-python contrast (tests only)
 - GB/T 33661-2017 rule assertions
-- Published almanac / observatory solar-term samples
+- Observatory solar-term samples
 
-## Fixture checklist (growing)
+## Fixture checklist
 
 - [x] Ordinary date `1993-09-28`
-- [x] Lunar New Year boundary (1993-01-22 / 1993-01-23)
-- [x] Leap month (2023 leap 二月)
-- [ ] Li Chun ±1 second
-- [ ] Jieqi month boundaries
-- [ ] 子时 hour edges
-- [ ] Multi-zone same civil wall time
+- [x] Lunar New Year boundary
+- [x] Leap month
+- [x] Li Chun ±1 second
+- [x] Jing Zhe ±1 second
+- [x] Li Qiu ±1 second (month pillar)
+- [x] 子时 edges 22:59 / 23:00 / 00:00 / 01:00
+- [x] Multi-zone Li Chun conversion

@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-"""Immutable calendar data models."""
+"""Ganzhi models and rule enums (alpha.3)."""
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 
 from mystilink_lunar.constants import BRANCHES, STEMS, ZODIAC_EN, ZODIAC_ZH
 
 YearBoundary = Literal["chunjie", "lichun_day", "lichun_exact"]
+MonthBoundary = Literal["jie_exact", "jie_day", "lunar_month"]
+DayBoundary = Literal["midnight", "zi_start"]
+HourSystem = Literal["double_hour"]
 
 
 @dataclass(frozen=True)
@@ -108,23 +111,116 @@ class Zodiac:
 
 
 @dataclass(frozen=True)
+class SolarTerm:
+    """One of the 24 solar terms at an exact local instant."""
+
+    index: int
+    id: str
+    name: str
+    chinese_name: str
+    solar_longitude: float
+    datetime: datetime
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "index": self.index,
+            "id": self.id,
+            "name": self.name,
+            "chinese_name": self.chinese_name,
+            "solar_longitude": self.solar_longitude,
+            "datetime": self.datetime.isoformat(),
+        }
+
+
+@dataclass(frozen=True)
 class GanzhiRules:
-    """Explicit sexagenary boundary rules (more pillars in later alphas)."""
+    """Explicit sexagenary boundary rules for four pillars."""
 
     year_boundary: YearBoundary = "chunjie"
+    month_boundary: MonthBoundary = "lunar_month"
+    day_boundary: DayBoundary = "midnight"
+    hour_system: HourSystem = "double_hour"
 
     @classmethod
     def lunar_calendar(cls) -> GanzhiRules:
-        """Calendar-oriented defaults: lunar new year for year pillar/zodiac."""
-        return cls(year_boundary="chunjie")
+        """Calendar-oriented defaults: lunar new year and lunar months."""
+        return cls(
+            year_boundary="chunjie",
+            month_boundary="lunar_month",
+            day_boundary="midnight",
+            hour_system="double_hour",
+        )
 
     @classmethod
     def bazi_default(cls) -> GanzhiRules:
-        """BaZi-oriented defaults (lichun exact; full pillars later)."""
-        return cls(year_boundary="lichun_exact")
+        """BaZi-oriented defaults: Li Chun exact, jie exact, day rolls at 23:00."""
+        return cls(
+            year_boundary="lichun_exact",
+            month_boundary="jie_exact",
+            day_boundary="zi_start",
+            hour_system="double_hour",
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class GanzhiPillars:
+    """Four pillars: year / month / day / hour."""
+
+    year: Ganzhi
+    month: Ganzhi
+    day: Ganzhi
+    hour: Ganzhi
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "year": self.year.to_dict(),
+            "month": self.month.to_dict(),
+            "day": self.day.to_dict(),
+            "hour": self.hour.to_dict(),
+        }
+
+
+@dataclass(frozen=True)
+class PillarTrace:
+    """Deterministic rule trace for one pillar (not LLM text)."""
+
+    value: str
+    stem_index: int
+    branch_index: int
+    boundary: str
+    reason: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "value": self.value,
+            "stem_index": self.stem_index,
+            "branch_index": self.branch_index,
+            "boundary": self.boundary,
+            "reason": self.reason,
+        }
+
+
+@dataclass(frozen=True)
+class GanzhiTrace:
+    """Deterministic rule traces for all four pillars."""
+
+    year: PillarTrace
+    month: PillarTrace
+    day: PillarTrace
+    hour: PillarTrace
+    rules: GanzhiRules
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "year": self.year.to_dict(),
+            "month": self.month.to_dict(),
+            "day": self.day.to_dict(),
+            "hour": self.hour.to_dict(),
+            "rules": self.rules.to_dict(),
+        }
 
 
 @dataclass(frozen=True)
@@ -136,9 +232,15 @@ class CalendarSnapshot:
     solar: SolarDate
     lunar: LunarDate
     zodiac: Zodiac
-    year_ganzhi: Ganzhi
+    ganzhi: GanzhiPillars
     rules: GanzhiRules
     provider: str
+    previous_solar_term: Optional[SolarTerm] = None
+    next_solar_term: Optional[SolarTerm] = None
+
+    @property
+    def year_ganzhi(self) -> Ganzhi:
+        return self.ganzhi.year
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -150,11 +252,20 @@ class CalendarSnapshot:
                 "day": self.solar.day,
             },
             "lunar": self.lunar.to_dict(),
-            "ganzhi": {
-                "year": self.year_ganzhi.to_dict(),
-            },
+            "ganzhi": self.ganzhi.to_dict(),
             "zodiac": self.zodiac.to_dict(),
             "rules": self.rules.to_dict(),
             "provider": self.provider,
-            "solar_term": None,
+            "solar_term": {
+                "previous": (
+                    self.previous_solar_term.to_dict()
+                    if self.previous_solar_term is not None
+                    else None
+                ),
+                "next": (
+                    self.next_solar_term.to_dict()
+                    if self.next_solar_term is not None
+                    else None
+                ),
+            },
         }
