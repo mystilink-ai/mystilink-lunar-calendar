@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0a4
+
+- Primary CLI entry point is `lunar`; alias `mystilink-lunar` remains installed
+
+
 ## 0.1.0a3 — Four Pillars
 
 - Year / month / day / hour pillars with explicit `GanzhiRules`

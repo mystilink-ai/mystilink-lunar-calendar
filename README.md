@@ -12,7 +12,7 @@ Deterministic, timezone-aware Chinese lunar calendar and sexagenary-cycle founda
 
 | Target | Delivery (alpha.3) |
 |--------|--------------------|
-| Python 3.10+ | Installable package `mystilink-lunar`, CLI `mystilink-lunar` |
+| Python 3.10+ | Installable package `mystilink-lunar`, CLI `lunar` (alias `mystilink-lunar`) |
 | C / C++ / C# / Java / JavaScript·Node | Planned: thin bindings over CLI JSON |
 
 ## Requirements
@@ -26,7 +26,7 @@ Deterministic, timezone-aware Chinese lunar calendar and sexagenary-cycle founda
 cd mystilink-lunar-calendar
 python3 -m pip install -e ".[dev]"
 
-mystilink-lunar convert \
+lunar convert \
   --date 1993-09-28 \
   --time 13:21 \
   --timezone Asia/Shanghai \
@@ -120,4 +120,4 @@ MIT. See [LICENSE](LICENSE). Third-party runtime notice: [NOTICE](NOTICE).
 
 ## Feedback
 
-Report defects with: CLI version (`mystilink-lunar version`), exact command line (fictional dates only), and stdout/stderr.
+Report defects with: CLI version (`lunar version`), exact command line (fictional dates only), and stdout/stderr.

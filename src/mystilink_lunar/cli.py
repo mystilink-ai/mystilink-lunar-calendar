@@ -14,7 +14,7 @@ from mystilink_lunar.models import GanzhiRules
 from mystilink_lunar.solar_terms import get_solar_term
 
 PACKAGE_NAME = "mystilink-lunar"
-FALLBACK_VERSION = "0.1.0a3"
+FALLBACK_VERSION = "0.1.0a4"
 
 
 def get_version() -> str:
@@ -167,7 +167,7 @@ def cmd_version(_: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="mystilink-lunar",
+        prog="lunar",
         description="Mystilink Chinese lunar calendar CLI",
     )
     sub = parser.add_subparsers(dest="command", required=True)

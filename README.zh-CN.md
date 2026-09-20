@@ -12,7 +12,7 @@
 
 | 目标 | 交付（alpha.3） |
 |------|-----------------|
-| Python 3.10+ | 可安装包 `mystilink-lunar`，CLI `mystilink-lunar` |
+| Python 3.10+ | 可安装包 `mystilink-lunar`，CLI `lunar`（别名 `mystilink-lunar`） |
 | C / C++ / C# / Java / JavaScript·Node | 计划：基于 CLI JSON 的薄绑定 |
 
 ## 环境要求
@@ -26,7 +26,7 @@
 cd mystilink-lunar-calendar
 python3 -m pip install -e ".[dev]"
 
-mystilink-lunar convert \
+lunar convert \
   --date 1993-09-28 \
   --time 13:21 \
   --timezone Asia/Shanghai \
@@ -120,4 +120,4 @@ MIT。见 [LICENSE](LICENSE)。第三方运行时说明：[NOTICE](NOTICE)。
 
 ## 问题反馈
 
-请附带：CLI 版本（`mystilink-lunar version`）、完整命令行（仅使用虚构日期）、stdout/stderr。
+请附带：CLI 版本（`lunar version`）、完整命令行（仅使用虚构日期）、stdout/stderr。
