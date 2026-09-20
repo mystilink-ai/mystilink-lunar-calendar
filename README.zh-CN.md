@@ -107,6 +107,9 @@ term = get_solar_term("lichun", 2026, timezone="Asia/Shanghai")
 | 0.2+ | 自建天文核心；去掉运行时 sxtwl |
 | 1.0 | 稳定 schema、权威 fixture、零运行时依赖 |
 
+
+可选 `--envelope` 将结果包装为 `mystilink.envelope/0.1`（默认仍为裸 JSON）。
+
 ## 限制
 
 - 尚未包含真太阳时 / 经度修正

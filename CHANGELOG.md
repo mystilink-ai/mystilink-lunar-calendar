@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0a5
+
+- CLI `convert --envelope` / `--locale` wraps convert JSON as mystilink.envelope/0.1
+- Default human / `--json` output unchanged when `--envelope` is omitted
+
 ## 0.1.0a4
 
 - Primary CLI entry point is `lunar`; alias `mystilink-lunar` remains installed

@@ -12,9 +12,10 @@ from mystilink_lunar.calendar import LunarCalendar
 from mystilink_lunar.exceptions import MystilinkLunarError
 from mystilink_lunar.models import GanzhiRules
 from mystilink_lunar.solar_terms import get_solar_term
+from mystilink_lunar.envelope import build_subject, structured_error, wrap_envelope
 
 PACKAGE_NAME = "mystilink-lunar"
-FALLBACK_VERSION = "0.1.0a4"
+FALLBACK_VERSION = "0.1.0a5"
 
 
 def get_version() -> str:
@@ -28,8 +29,11 @@ def _print_json(data: Any) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
-def _print_error(message: str, code: int = 1) -> None:
-    print(json.dumps({"error": message}, ensure_ascii=False), file=sys.stderr)
+def _print_error(message: str, code: int = 1, *, envelope: bool = False) -> None:
+    if envelope:
+        print(json.dumps(structured_error("error", message), ensure_ascii=False), file=sys.stderr)
+    else:
+        print(json.dumps({"error": message}, ensure_ascii=False), file=sys.stderr)
     raise SystemExit(code)
 
 
@@ -128,11 +132,27 @@ def cmd_convert(args: argparse.Namespace) -> None:
     except ValueError as exc:
         _print_error(str(exc))
 
-    if args.json:
-        data = cal.to_dict()
-        if args.explain:
-            _pillars, trace = cal.ganzhi(explain=True)
-            data["ganzhi_explain"] = trace.to_dict()
+    data = cal.to_dict()
+    if args.explain:
+        _pillars, trace = cal.ganzhi(explain=True)
+        data["ganzhi_explain"] = trace.to_dict()
+    if getattr(args, "envelope", False):
+        data.setdefault("schema_version", "mystilink.calendar_basis/0.1")
+        subject = build_subject(
+            datetime_iso=data.get("solar", {}).get("datetime") if isinstance(data.get("solar"), dict) else None,
+            timezone_name=args.timezone,
+        )
+        _print_json(
+            wrap_envelope(
+                system="lunar",
+                chart=data,
+                subject=subject,
+                calendar_basis=data,
+                locale=getattr(args, "locale", None),
+                produced_by=f"{PACKAGE_NAME}@{get_version()}",
+            )
+        )
+    elif args.json:
         _print_json(data)
     else:
         print(_human(cal))
@@ -220,6 +240,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Include deterministic ganzhi rule traces",
     )
+    convert.add_argument(
+        "--envelope",
+        action="store_true",
+        help="Wrap JSON as mystilink.envelope/0.1 (implies --json)",
+    )
+    convert.add_argument("--locale", type=str, default=None, help="BCP 47 locale for envelope")
     convert.set_defaults(func=cmd_convert)
 
     term = sub.add_parser("solar-term", help="Exact instant of one 24 solar term")

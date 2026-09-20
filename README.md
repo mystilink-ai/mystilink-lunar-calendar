@@ -107,6 +107,9 @@ See [docs/accuracy.md](docs/accuracy.md). Supported civil years: **1900–2100**
 | 0.2+ | Native astronomy; retire runtime sxtwl |
 | 1.0 | Stable schema, validated fixtures, zero runtime deps |
 
+
+Optional `--envelope` wraps the result as `mystilink.envelope/0.1` (default remains bare JSON).
+
 ## Limits
 
 - True solar time / longitude correction not included yet
