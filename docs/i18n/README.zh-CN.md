@@ -1,6 +1,6 @@
 # Mystilink 农历历法库
 
-> Languages: [English](README.md) | [简体中文](README.zh-CN.md)
+> Languages: [English](../../README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md)
 
 ## 概述
 
@@ -85,17 +85,17 @@ term = get_solar_term("lichun", 2026, timezone="Asia/Shanghai")
 
 ## 配置 / 规则
 
-见 [docs/ganzhi-rules.md](docs/ganzhi-rules.md) 与 [docs/calendar-rules.md](docs/calendar-rules.md)。
+见 [docs/ganzhi-rules.md](../ganzhi-rules.md) 与 [docs/calendar-rules.md](../calendar-rules.md)。
 
 ## 示例
 
-- [examples/python/basic.py](examples/python/basic.py)
-- [examples/python/solar_terms.py](examples/python/solar_terms.py)
-- [examples/python/bazi_time_basis.py](examples/python/bazi_time_basis.py)
+- [examples/python/basic.py](../../examples/python/basic.py)
+- [examples/python/solar_terms.py](../../examples/python/solar_terms.py)
+- [examples/python/bazi_time_basis.py](../../examples/python/bazi_time_basis.py)
 
 ## 精度
 
-见 [docs/accuracy.md](docs/accuracy.md)。支持公历年份：**1900–2100**。
+见 [docs/accuracy.md](../accuracy.md)。支持公历年份：**1900–2100**。
 
 ## 路线图（摘要）
 
@@ -119,7 +119,7 @@ term = get_solar_term("lichun", 2026, timezone="Asia/Shanghai")
 
 ## 许可
 
-MIT。见 [LICENSE](LICENSE)。第三方运行时说明：[NOTICE](NOTICE)。
+MIT。见 [LICENSE](../../LICENSE)。第三方运行时说明：[NOTICE](../../NOTICE)。
 
 ## 问题反馈
 
